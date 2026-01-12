@@ -3,8 +3,24 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+from pathlib import Path
+
+ASSETS_DIR = Path(__file__).parent / "Resources"
+LOGO_PATH = ASSETS_DIR / "ESPOL.png"
+FICT_PATH = ASSETS_DIR / "FICT.png"
+IMG_WELL_PATH = ASSETS_DIR / "well.jpg"
+IMG_DD_PATH = ASSETS_DIR / "dd.jpg"
+
+
+def show_image_if_exists(path: Path, **kwargs):
+    if path.exists():
+        st.image(str(path), **kwargs)
+    else:
+        st.warning(f"No encontré el archivo: {path.name} (revisa la carpeta assets/).")
+
 
 st.set_page_config(page_title="Juego de Pozos Direccionales 3D", layout="wide")
+
 
 UNITS = "m"
 
@@ -18,6 +34,7 @@ DEFAULT_MANUAL = pd.DataFrame(
         {"TVD": 1000.0, "DespNS": 120.0, "DespEW": 40.0},
     ]
 )
+
 
 # -----------------------------
 # Validation & computations
@@ -40,6 +57,7 @@ def validate_coords(df: pd.DataFrame):
     if len(df) < 2:
         return False, "Agrega al menos 2 estaciones (incluida superficie)."
     return True, ""
+
 
 def compute_from_coords(df: pd.DataFrame):
     """A partir de TVD/NS/EW calcula MD, Inc/Az por segmento, Dogleg y DLS (deg/30m)."""
@@ -93,6 +111,7 @@ def compute_from_coords(df: pd.DataFrame):
     out["DLS_deg_per_30m"] = dls
     return out
 
+
 # -----------------------------
 # Minimum Curvature generator
 # -----------------------------
@@ -117,6 +136,7 @@ def mc_step(delta_md, inc1_deg, az1_deg, inc2_deg, az2_deg):
 
     return dTVD, dN, dE, math.degrees(dogleg)
 
+
 def _append_station(stations, delta_md, inc_next, az_next, label):
     cur = stations[-1]
     dTVD, dN, dE, dog = mc_step(delta_md, cur["Inc_deg"], cur["Az_deg"], inc_next, az_next)
@@ -133,6 +153,7 @@ def _append_station(stations, delta_md, inc_next, az_next, label):
         }
     )
 
+
 def vertical_to_tvd(stations, tvd_target, step_md, label):
     while stations[-1]["TVD"] < tvd_target - 1e-6:
         cur = stations[-1]
@@ -140,6 +161,7 @@ def vertical_to_tvd(stations, tvd_target, step_md, label):
         delta = min(step_md, remaining)  # inc=0 => dTVD≈deltaMD
         _append_station(stations, delta, 0.0, cur["Az_deg"], label)
     return stations
+
 
 def build_to_inc(stations, inc_target, rate_deg_per_30m, step_md, label):
     rate = float(rate_deg_per_30m)
@@ -163,6 +185,7 @@ def build_to_inc(stations, inc_target, rate_deg_per_30m, step_md, label):
         _append_station(stations, delta, inc_next, cur["Az_deg"], label)
     return stations
 
+
 def hold_md(stations, length_md, step_md, label):
     remaining = float(length_md)
     while remaining > 1e-6:
@@ -171,6 +194,7 @@ def hold_md(stations, length_md, step_md, label):
         _append_station(stations, delta, cur["Inc_deg"], cur["Az_deg"], label)
         remaining -= delta
     return stations
+
 
 def compute_dls(df: pd.DataFrame):
     df = df.copy()
@@ -181,6 +205,7 @@ def compute_dls(df: pd.DataFrame):
     dls[1:] = np.where(dmd > 0, dog[1:] / dmd * 30.0, 0.0)
     df["DLS_deg_per_30m"] = dls
     return df
+
 
 def generate_well(well_type: str,
                   az_deg: float,
@@ -241,6 +266,7 @@ def generate_well(well_type: str,
     df = compute_dls(df)
     return df
 
+
 # -----------------------------
 # Plot
 # -----------------------------
@@ -291,6 +317,7 @@ def make_3d_figure(survey: pd.DataFrame, targets: list[dict] | None = None):
     )
     return fig
 
+
 # -----------------------------
 # Game helpers
 # -----------------------------
@@ -311,6 +338,7 @@ def random_targets(seed: int, tvd_range, disp_range):
     toe["TVD"] = max(0.0, toe["TVD"])
     return landing, toe
 
+
 def closest_station_distance(survey: pd.DataFrame, target: dict):
     dx = survey["DespEW"].to_numpy(float) - target["DespEW"]
     dy = survey["DespNS"].to_numpy(float) - target["DespNS"]
@@ -318,6 +346,7 @@ def closest_station_distance(survey: pd.DataFrame, target: dict):
     dist = np.sqrt(dx * dx + dy * dy + dz * dz)
     i = int(np.argmin(dist))
     return float(dist[i]), int(i)
+
 
 def score_run(survey: pd.DataFrame, landing: dict, toe: dict, tol: float, dls_max: float):
     d_land, _ = closest_station_distance(survey, landing)
@@ -336,6 +365,7 @@ def score_run(survey: pd.DataFrame, landing: dict, toe: dict, tol: float, dls_ma
     win = (d_land <= tol) and (d_toe <= tol) and (penalty_dls == 0.0)
     return {"d_land": d_land, "d_toe": d_toe, "score": score, "penalty_dls": penalty_dls, "win": win}
 
+
 # -----------------------------
 # Session state
 # -----------------------------
@@ -351,7 +381,15 @@ if "game" not in st.session_state:
 # -----------------------------
 # UI
 # -----------------------------
-st.title("🛢️ Juego / Simulador: Pozos Direccionales 3D (J, S, Horizontal)")
+st.title("🛢️ Simulador: Pozos Direccionales 3D (J, S, Horizontal)")
+
+with st.expander("🖼️ Figuras de referencia (perforación direccional)", expanded=False):
+    c1, c2 = st.columns(2)
+    with c1:
+        show_image_if_exists(IMG_WELL_PATH, caption="Ejemplo: pozo direccional / BHA", use_container_width=True)
+    with c2:
+        show_image_if_exists(IMG_DD_PATH, caption="Ejemplo: perforación direccional (visual)", use_container_width=True)
+
 
 tab1, tab2, tab3 = st.tabs(
     ["✍️ Constructor manual (TVD/NS/EW)", "🧰 Generador (J / S / Horizontal)", "🎮 Modo juego (Landing + Toe)"]
@@ -401,6 +439,12 @@ with tab2:
     st.markdown("Genera trayectorias típicas. Luego puedes **copiar estaciones al tab manual**.")
 
     with st.sidebar:
+        # Logo ESPOL en el lateral
+        show_image_if_exists(LOGO_PATH, use_container_width=True)
+        st.markdown("---")
+        show_image_if_exists(FICT_PATH, use_container_width=True)
+        st.markdown("---")
+
         st.header("⚙️ Parámetros del generador")
         well_type = st.radio("Tipo de pozo", ["J", "S", "Horizontal"], index=0)
         az_deg = st.slider("Azimut (°) [0=N, 90=E]", 0.0, 360.0, 45.0, step=1.0)
