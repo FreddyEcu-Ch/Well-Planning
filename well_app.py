@@ -430,7 +430,7 @@ with tab1:
             csv = survey.to_csv(index=False).encode("utf-8")
             st.download_button("⬇️ Descargar CSV", data=csv, file_name="survey_manual.csv", mime="text/csv")
         with c2:
-            st.subheader("🧭 3D")
+            st.subheader("🧭 Trayectoria 3D del pozo")
             st.plotly_chart(make_3d_figure(survey), use_container_width=True)
 
 # -----------------------------
@@ -519,7 +519,7 @@ with tab2:
             st.session_state.manual_points = survey[["TVD", "DespNS", "DespEW"]].copy()
             st.success("Listo: se copiaron las estaciones al constructor manual.")
     with c2:
-        st.subheader("🧭 3D")
+        st.subheader("🧭 Trayectoria 3D del pozo")
         st.plotly_chart(make_3d_figure(survey), use_container_width=True)
 
 # -----------------------------
