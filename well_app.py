@@ -584,7 +584,7 @@ with tab3:
         st.caption("Tip: para misiones tipo horizontal, usa 'Horizontal' y ajusta azimut + longitud lateral.")
 
     with gcol2:
-        st.subheader("🧭 3D con objetivos")
+        st.subheader("🧭 Pozo 3D con objetivos")
         st.plotly_chart(make_3d_figure(survey_eval, targets=[landing, toe]), use_container_width=True)
 
         st.subheader("📋 Últimas estaciones")
