@@ -381,7 +381,8 @@ if "game" not in st.session_state:
 # -----------------------------
 # UI
 # -----------------------------
-st.title("🛢️ Simulador: Pozos Direccionales 3D (J, S, Horizontal)")
+st.title("🛢️ Simulador: Pozos Direccionales "
+         "(J, S, Horizontal)")
 
 with st.expander("🖼️ Figuras de referencia (perforación direccional)", expanded=False):
     c1, c2 = st.columns(2)
