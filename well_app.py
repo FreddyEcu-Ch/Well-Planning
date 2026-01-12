@@ -19,7 +19,7 @@ def show_image_if_exists(path: Path, **kwargs):
         st.warning(f"No encontré el archivo: {path.name} (revisa la carpeta assets/).")
 
 
-st.set_page_config(page_title="Juego de Pozos Direccionales 3D", layout="wide")
+st.set_page_config(page_title="Simulador de Pozos Direccionales 3D", layout="wide")
 
 
 UNITS = "m"
